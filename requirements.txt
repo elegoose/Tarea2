@@ -1,0 +1,4 @@
+glfw
+numpy
+pyopengl
+pillow

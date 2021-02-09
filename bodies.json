@@ -1,0 +1,71 @@
+[
+	{
+
+		"Color": [ 1, 1, 0 ],
+		"Radius": 0.1,
+		"Distance": 0.0,
+		"Velocity": 0.0,
+		"Model": "sphere.obj",
+		"Inclination": 0.0,
+		"Satellites": [
+			{
+				"Color": [ 0.0, 0.2, 0.8 ],
+				"Radius": 0.03,
+				"Distance": 0.25,
+				"Velocity": 0.4,
+				"Model": "sphere.obj",
+				"Inclination": 0.0,
+				"Satellites": [
+					{
+						"Color": [ 0.4, 0.4, 0.4 ],
+						"Radius": 0.01,
+						"Distance": 0.07,
+						"Velocity": -0.2,
+						"Model": "sphere.obj",
+						"Inclination": 0.0,
+						"Satellites": "Null"
+					}
+				]
+			},
+			{
+				"Color": [ 1, 0.3, 0.0 ],
+				"Radius": 0.05,
+				"Distance": 0.35,
+				"Velocity": 0.5,
+				"Model": "sphere.obj",
+				"Inclination": 0.0,
+				"Satellites": [
+					{
+						"Color": [0.18,0.96,0.49],
+						"Radius": 0.01,
+						"Distance": 0.12,
+						"Velocity": -0.4,
+						"Model": "sphere.obj",
+						"Inclination": 0.0,
+						"Satellites": "Null"
+					},
+					{
+						"Color": [ 0.91,0.32,0.92 ],
+						"Radius": 0.02,
+						"Distance": 0.08,
+						"Velocity": 0.5,
+						"Model": "sphere.obj",
+						"Inclination": 0.0,
+						"Satellites": "Null"
+					}
+				]
+			},
+			{
+				"Color": [ 0.9, 0.1, 0.1 ],
+				"Radius": 0.08,
+				"Distance": 0.55,
+				"Velocity": -0.3,
+				"Model": "sphere.obj",
+				"Inclination": 0.0,
+				"Satellites": "Null"
+			}
+		]
+	}
+]
+
+
