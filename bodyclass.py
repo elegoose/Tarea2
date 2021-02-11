@@ -6,6 +6,7 @@ import scene_graph as sg
 from OpenGL.GL import *
 import transformations as tr
 
+
 def readFaceVertex(faceDescription):  # noqa
     aux = faceDescription.split('/')
 
@@ -75,13 +76,13 @@ def readOBJ(filename, color):  # noqa
 
 
 class Body:
-    def __init__(self, color, radius, distance, velocity, model, inclination, bodyID, satellites=None,
-                 bodySceneGraph=None, systemSceneGraph=None, posx=0, posy=0):
+    def __init__(self, color, radius, distance, velocity, model, inclination, bodyID, trail, satellites=None,
+                 bodySceneGraph=None, trailSceneGraph=None, systemSceneGraph=None, posx=0, posy=0, posz=0):
         self.color = color
 
         self.radius = radius
 
-        self.distance = distance * 2
+        self.distance = distance
 
         self.velocity = velocity
 
@@ -90,6 +91,8 @@ class Body:
         self.inclination = inclination
 
         self.bodyID = bodyID
+
+        self.trail = trail
 
         self.theta = np.random.uniform(-1, 1) * np.pi * 2
 
@@ -103,41 +106,62 @@ class Body:
 
         self.posy = posy
 
+        self.posz = posz
+
         self.gpuShape = None
 
-    def getgpushape(self):
-        return es.toGPUShape(shape=readOBJ(self.model, self.color))
+        self.trailGpuShape = None
 
-    def draw(self,lightPipeline,dt):
+        self.trailSceneGraph = trailSceneGraph
+
+    def getgpushape(self):
+        return es.toGPUShape(shape=readOBJ(self.model, self.color)), es.toGPUShape(self.trail)
+
+    def draw(self, lightPipeline, trailPipeline, dt, projection, view):
+        glUseProgram(trailPipeline.shaderProgram)
+        glPolygonMode(GL_FRONT_AND_BACK, GL_LINE)
+        glUniformMatrix4fv(glGetUniformLocation(trailPipeline.shaderProgram, "projection"), 1, GL_TRUE, projection)
+        glUniformMatrix4fv(glGetUniformLocation(trailPipeline.shaderProgram, "view"), 1, GL_TRUE, view)
+        glUniformMatrix4fv(glGetUniformLocation(trailPipeline.shaderProgram, "model"), 1, GL_TRUE, tr.rotationX(self.inclination))
+        trailPipeline.drawShape(self.trailGpuShape)
         glUseProgram(lightPipeline.shaderProgram)
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL)
-        theta =  self.theta + self.velocity * dt
+        theta = self.theta + self.velocity * dt
         self.posx = self.distance * np.cos(theta)
         self.posy = self.distance * np.sin(theta)
-        if self.satellites=='Null':
+        self.posz = self.inclination * self.posy
+        if self.satellites == 'Null':
             glUniformMatrix4fv(glGetUniformLocation(lightPipeline.shaderProgram, 'model'), 1, GL_TRUE,
-                               tr.matmul([tr.translate(self.posx,self.posy,0),tr.uniformScale(self.radius)]))
+                               tr.matmul([tr.translate(self.posx, self.posy, self.posz), tr.uniformScale(self.radius)]))
             lightPipeline.drawShape(self.gpuShape)
         else:
             for satellite in self.satellites:
                 theta = satellite.theta + satellite.velocity * dt
-                satellite.posx = satellite.distance * np.cos(theta)
-                satellite.posy = satellite.distance * np.sin(theta)
-                satellite.bodySceneGraph.transform = tr.matmul([tr.translate(satellite.posx,satellite.posy,0),tr.uniformScale(satellite.radius)])
+                satellite.posx = -satellite.distance * np.cos(theta)
+                satellite.posy = -satellite.distance * np.sin(theta)
+                satellite.posz = satellite.inclination * satellite.posy
+                # Transforming satellite trail to its coordinates
+                satellite.trailSceneGraph.transform = tr.matmul([tr.translate(self.posx, self.posy, self.posz),tr.rotationX(satellite.inclination)])
+                glUseProgram(trailPipeline.shaderProgram)
+                glPolygonMode(GL_FRONT_AND_BACK, GL_LINE)
+                sg.drawSceneGraphNode(satellite.trailSceneGraph, trailPipeline, 'model')
+
+                satellite.bodySceneGraph.transform = tr.matmul(
+                    [tr.translate(satellite.posx, satellite.posy-satellite.radius, satellite.posz), tr.uniformScale(satellite.radius)])
             self.bodySceneGraph.transform = tr.uniformScale(self.radius)
-            self.systemSceneGraph.transform = tr.translate(self.posx,self.posy,0)
+            self.systemSceneGraph.transform = tr.translate(self.posx, self.posy, self.posz)
+            glUseProgram(lightPipeline.shaderProgram)
+            glPolygonMode(GL_FRONT_AND_BACK, GL_FILL)
             sg.drawSceneGraphNode(self.systemSceneGraph, lightPipeline, 'model')
 
-def drawbodies(bodies,lightPipeline,dt):
+
+def drawbodies(bodies, lightPipeline, trailPipeline, dt, projection, view):
     glUseProgram(lightPipeline.shaderProgram)
-    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL)
     for body in bodies:
-        body.draw(lightPipeline,dt)
+        body.draw(lightPipeline, trailPipeline, dt, projection, view)
 
 
-
-
-def getbodiesinfo(file,proportion):
+def getbodiesinfo(file, proportion):
     with open(file) as f:
         data = json.load(f)
     bodies = []
@@ -145,10 +169,9 @@ def getbodiesinfo(file,proportion):
     color = data[0]['Color']
     radius = data[0]['Radius']
     model = data[0]['Model']
-    star = Body(color, radius, 0, 0, model, 0, 0)
-    star.gpuShape = star.getgpushape()
+    star = Body(color, radius, 0, 0, model, 0, 0, None)
     bodyID = 1
-    bodies.append(star)
+    # bodies.append(star)
     planets = data[0]['Satellites']
     for planet in planets:
         color = planet['Color']
@@ -158,8 +181,12 @@ def getbodiesinfo(file,proportion):
         model = planet['Model']
         inclination = planet['Inclination']
         satellites = planet['Satellites']
-        planetbody = Body(color, radius, distance, velocity, model, inclination, bodyID, satellites)
-        planetbody.gpuShape = planetbody.getgpushape()
+        planetbody = Body(color, radius, distance, velocity, model, inclination, bodyID, createTrail(distance, 25),
+                          satellites=satellites)
+        planetbody.gpuShape = planetbody.getgpushape()[0]
+        planetbody.trailGpuShape = planetbody.getgpushape()[1]
+
+        # Planet Trail
         bodyID += 1
         if satellites != 'Null':
             planetSceneGraph = sg.SceneGraphNode('planet')
@@ -177,16 +204,53 @@ def getbodiesinfo(file,proportion):
                 velocity = satellite['Velocity']
                 model = satellite['Model']
                 inclination = satellite['Inclination']
-                satellitebody = Body(color, radius, distance, velocity, model, inclination, bodyID)
+                satellitebody = Body(color, radius, distance, velocity, model, inclination, bodyID,
+                                     createTrail(distance, 25))
                 bodyID += 1
-                satellitebody.gpuShape = satellitebody.getgpushape()
+                satellitebody.gpuShape = satellitebody.getgpushape()[0]
                 satelliteSceneGraph = sg.SceneGraphNode('satellite')
                 satelliteSceneGraph.childs += [satellitebody.gpuShape]
                 satellitebody.bodySceneGraph = satelliteSceneGraph
                 systemSceneGraph.childs += [satelliteSceneGraph]
 
+                satellitebody.trailGpuShape = satellitebody.getgpushape()[1]
+                trailSceneGraph = sg.SceneGraphNode('satelliteTrail')
+                trailSceneGraph.childs += [satellitebody.trailGpuShape]
+                systemTrailSceneGraph = sg.SceneGraphNode('systemSatelliteTrail')
+                systemTrailSceneGraph.childs += [trailSceneGraph]
+                satellitebody.trailSceneGraph = systemTrailSceneGraph
+
                 planetbody.satellites.append(satellitebody)
             planetbody.systemSceneGraph = systemSceneGraph
         bodies.append(planetbody)
-    return bodies
+    return star, bodies
 
+
+def createTrail(radio, N):  # noqa
+    vertices = []
+    indices = []
+
+    dtheta = 2 * np.pi / N
+
+    for i in range(N):
+        theta = i * dtheta
+
+        vertices += [
+            radio * np.cos(theta), radio * np.sin(theta), 0,
+
+            0.91, 0.93, 0.85]
+
+        if i == 0:
+            indices += [0, 0, 1]
+        elif i == N - 1:
+            pass
+        else:
+            indices += [i, i, i + 1]
+
+    # Uniendo circunferencia
+    indices += [N - 1, N - 1, 0]
+
+    vertices = np.array(vertices, dtype=np.float32)
+    indices = np.array(indices, dtype=np.uint32)
+
+    return bs.Shape(vertices, indices)
