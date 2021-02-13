@@ -11,8 +11,6 @@ import transformations as tr
 from controller import *
 
 controller = Controller()
-
-
 def on_key(window, key, scancode, action, mods):  # noqa
     if action != glfw.PRESS:
         return
@@ -22,9 +20,17 @@ def on_key(window, key, scancode, action, mods):  # noqa
     if key == glfw.KEY_V:
         controller.followbody = not controller.followbody
     elif key == glfw.KEY_LEFT:
+        if controller.bodyID-1 < 0:
+            controller.bodyID = controller.maxbodyID
+            return
         controller.bodyID -= 1
     elif key == glfw.KEY_RIGHT:
+        if controller.bodyID+1 > controller.maxbodyID:
+            controller.bodyID = 0
+            return
         controller.bodyID += 1
+    elif key == glfw.KEY_F:
+        controller.fillPolygon = not controller.fillPolygon
 
 
 if __name__ == '__main__':
@@ -48,6 +54,7 @@ if __name__ == '__main__':
     glClearColor(0.15, 0.15, 0.15, 1.0)
     glEnable(GL_DEPTH_TEST)
     allbodies = bc.getbodiesinfo('bodies.json', proportion)
+    controller.maxbodyID = bc.maxbodyID
     star = allbodies[0]
     bodies = allbodies[1]
     star.gpuShape = es.toGPUShape(shape=bc.readOBJ(star.model, star.color))
@@ -63,7 +70,13 @@ if __name__ == '__main__':
     )
 
     projection = tr.perspective(45, float(width) / float(height), 0.1, 100)
-
+    # camAngle = 0
+    la=1
+    # ld=1
+    # ls=1
+    ka=0.1
+    # kd=0.15
+    # ks=0.3
     while not glfw.window_should_close(window):
         glfw.poll_events()
 
@@ -98,22 +111,62 @@ if __name__ == '__main__':
         if glfw.get_key(window, glfw.KEY_X) == glfw.PRESS:
             controller.r += 0.1
 
+        # if glfw.get_key(window, glfw.KEY_UP) == glfw.PRESS:
+        #     camAngle += 0.01
+        #     print(camAngle)
+        # elif glfw.get_key(window, glfw.KEY_DOWN) == glfw.PRESS:
+        #     camAngle -= 0.01
+        #     print(camAngle)
+
+        # if glfw.get_key(window, glfw.KEY_1):
+        #     la -= 0.01
+        #     print('la', la)
+        # elif glfw.get_key(window,glfw.KEY_2):
+        #     la += 0.01
+        #     print('la', la)
+        # elif glfw.get_key(window,glfw.KEY_3):
+        #     ld -= 0.01
+        #     print('ld', ld)
+        # elif glfw.get_key(window,glfw.KEY_4):
+        #     ld += 0.01
+        #     print('ld', ld)
+        # elif glfw.get_key(window,glfw.KEY_5):
+        #     ls -= 0.01
+        #     print('ls',ls)
+        # elif glfw.get_key(window,glfw.KEY_6):
+        #     ls += 0.01
+        #     print('ls',ls)
+        # elif glfw.get_key(window,glfw.KEY_F1):
+        #     ka -= 0.01
+        #     print('ka',ka)
+        # elif glfw.get_key(window,glfw.KEY_F2):
+        #     ka += 0.01
+        #     print('ka',ka)
+        # elif glfw.get_key(window,glfw.KEY_F3):
+        #     kd -= 0.01
+        #     print('kd',kd)
+        # elif glfw.get_key(window,glfw.KEY_F4):
+        #     kd += 0.01
+        #     print('kd',kd)
+        # elif glfw.get_key(window,glfw.KEY_F5):
+        #     ks -= 0.01
+        #     print('ks',ks)
+        # elif glfw.get_key(window,glfw.KEY_F6):
+        #     ks += 0.01
+        #     print('ks',ks)
+
+        if controller.fillPolygon:
+            glPolygonMode(GL_FRONT_AND_BACK, GL_FILL)
+        else:
+            glPolygonMode(GL_FRONT_AND_BACK, GL_LINE)
+
         glUseProgram(lightPipeline.shaderProgram)
         # SECOND VIEW
         if controller.followbody:
-            selectedbody = star
-            for body in bodies:
-                if controller.bodyID == body.bodyID:
-                    selectedbody = body
-                if body.satellites != 'Null':
-                    for satellite in body.satellites:
-                        if controller.bodyID == satellite.bodyID:
-                            selectedbody = satellite
+            camera = bc.camerapos(bodies, controller, dt)
+            viewPos = camera[0]
+            eye = camera[1]
 
-            viewPos = np.array([selectedbody.posx, selectedbody.posy, controller.camz])
-            eye = np.array(
-                [selectedbody.posx + controller.camx, selectedbody.posy + controller.camy,
-                 controller.camz])
             view = tr.lookAt(
                 eye,
                 viewPos,  # The camera will be the sun
@@ -121,18 +174,15 @@ if __name__ == '__main__':
             )
 
             # White light in all components: ambient, diffuse and specular.
-            glUniform3f(glGetUniformLocation(lightPipeline.shaderProgram, "La"), 1.0, 1.0, 1.0)
-            glUniform3f(glGetUniformLocation(lightPipeline.shaderProgram, "Ld"), 0.3, 0.3, 0.3)
-            glUniform3f(glGetUniformLocation(lightPipeline.shaderProgram, "Ls"), 0.3, 0.3, 0.3)
+            # glUniform3f(glGetUniformLocation(lightPipeline.shaderProgram, "La"), 1, 1, 1)
+            # glUniform3f(glGetUniformLocation(lightPipeline.shaderProgram, "Ld"), 1, 1, 1)
+            glUniform3f(glGetUniformLocation(lightPipeline.shaderProgram, "Ls"), 0, 0, 0)
 
             # Object is barely visible at only ambient. Bright white for diffuse and specular components.
-            glUniform3f(glGetUniformLocation(lightPipeline.shaderProgram, "Ka"), 0.1, 0.1, 0.1)
-            glUniform3f(glGetUniformLocation(lightPipeline.shaderProgram, "Kd"), 0.3, 0.3, 0.3)
-            glUniform3f(glGetUniformLocation(lightPipeline.shaderProgram, "Ks"), 0.3, 0.3, 0.3)
+            # glUniform3f(glGetUniformLocation(lightPipeline.shaderProgram, "Ka"), 1, 1, 1)
+            glUniform3f(glGetUniformLocation(lightPipeline.shaderProgram, "Kd"), 0.15, 0.15, 0.15)
+            glUniform3f(glGetUniformLocation(lightPipeline.shaderProgram, "Ks"), 0, 0, 0)
 
-            glUniform3f(glGetUniformLocation(lightPipeline.shaderProgram, "lightPosition"),
-                        selectedbody.posx,
-                        selectedbody.posy, 0)
         # FIRST VIEW
         else:
             viewPos = np.array([controller.camx, controller.camy, controller.camz])
@@ -143,16 +193,17 @@ if __name__ == '__main__':
                 np.array([0, 0, 1])
             )
 
-            glUniform3f(glGetUniformLocation(lightPipeline.shaderProgram, "La"), 1.0, 1.0, 1.0)
-            glUniform3f(glGetUniformLocation(lightPipeline.shaderProgram, "Ld"), 1.0, 1.0, 1.0)
-            glUniform3f(glGetUniformLocation(lightPipeline.shaderProgram, "Ls"), 1.0, 1.0, 1.0)
+            # glUniform3f(glGetUniformLocation(lightPipeline.shaderProgram, "La"), 1, 1, 1)
+            # glUniform3f(glGetUniformLocation(lightPipeline.shaderProgram, "Ld"), 1, 1, 1)
+            glUniform3f(glGetUniformLocation(lightPipeline.shaderProgram, "Ls"), 0.5, 0.5, 0.5)
 
-            glUniform3f(glGetUniformLocation(lightPipeline.shaderProgram, "Ka"), 0.4, 0.4, 0.4)
-            glUniform3f(glGetUniformLocation(lightPipeline.shaderProgram, "Kd"), 0.9, 0.9, 0.9)
-            glUniform3f(glGetUniformLocation(lightPipeline.shaderProgram, "Ks"), 1.0, 1.0, 1.0)
+            # glUniform3f(glGetUniformLocation(lightPipeline.shaderProgram, "Ka"), 1, 1, 1)
+            glUniform3f(glGetUniformLocation(lightPipeline.shaderProgram, "Kd"), 0.15, 0.15, 0.15)
+            glUniform3f(glGetUniformLocation(lightPipeline.shaderProgram, "Ks"), 0.5, 0.5, 0.5)
 
-            glUniform3f(glGetUniformLocation(lightPipeline.shaderProgram, "lightPosition"), 0, 0, 0)
-
+        # glUniform3f(glGetUniformLocation(lightPipeline.shaderProgram, "La"), 1, 1, 1)
+        glUniform3f(glGetUniformLocation(lightPipeline.shaderProgram, "Ld"), 1, 1, 1)
+        glUniform3f(glGetUniformLocation(lightPipeline.shaderProgram, "lightPosition"), 0, 0, 0)
         glUniform3f(glGetUniformLocation(lightPipeline.shaderProgram, "viewPosition"), viewPos[0], viewPos[1],
                     viewPos[2])
         glUniform1ui(glGetUniformLocation(lightPipeline.shaderProgram, "shininess"), 10)
@@ -162,6 +213,8 @@ if __name__ == '__main__':
         glUniform1f(glGetUniformLocation(lightPipeline.shaderProgram, "quadraticAttenuation"), 0.01)
 
         # Draw star
+        glUniform3f(glGetUniformLocation(lightPipeline.shaderProgram, "La"), 1, 1, 1)
+        glUniform3f(glGetUniformLocation(lightPipeline.shaderProgram, "Ka"), 1, 1, 1)
         glUniformMatrix4fv(glGetUniformLocation(lightPipeline.shaderProgram, "projection"), 1, GL_TRUE, projection)
         glUniformMatrix4fv(glGetUniformLocation(lightPipeline.shaderProgram, "view"), 1, GL_TRUE, view)
         glUniformMatrix4fv(glGetUniformLocation(lightPipeline.shaderProgram, "model"), 1, GL_TRUE,
@@ -169,7 +222,9 @@ if __name__ == '__main__':
         lightPipeline.drawShape(star.gpuShape)
 
         # Draw bodies
-        bc.drawbodies(bodies, lightPipeline, trailPipeline, dt, projection, view)
+        glUniform3f(glGetUniformLocation(lightPipeline.shaderProgram, "La"), 0.5, 0.5, 0.5)
+        glUniform3f(glGetUniformLocation(lightPipeline.shaderProgram, "Ka"), 0.1, 0.1, 0.1)
+        bc.drawbodies(bodies, lightPipeline, trailPipeline, dt, projection, view, controller)
 
         glfw.swap_buffers(window)
     glfw.terminate()

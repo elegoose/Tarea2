@@ -10,6 +10,8 @@ class Controller:
         self.camz = 0
         self.followbody = False
         self.bodyID = 0
+        self.maxbodyID = 0
+        self.fillPolygon = True
 
     def update(self):
         self.camx = self.r * np.cos(self.camaratheta)
