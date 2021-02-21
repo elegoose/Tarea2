@@ -21,8 +21,8 @@
 						"Radius": 0.01,
 						"Distance": 0.14,
 						"Velocity": 0.5,
-						"Model": "models/sphere.obj",
-						"Inclination": 0,
+						"Model": "models/moon.obj",
+						"Inclination": 0.2,
 						"Satellites": "Null"
 					}
 				]
@@ -48,7 +48,7 @@
 						"Color": [ 0.91,0.32,0.92 ],
 						"Radius": 0.012,
 						"Distance": 0.3,
-						"Velocity": 0.5,
+						"Velocity": 0.4,
 						"Model": "models/sphere.obj",
 						"Inclination": -0.3,
 						"Satellites": "Null"
