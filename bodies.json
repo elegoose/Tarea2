@@ -5,52 +5,52 @@
 		"Radius": 0.1,
 		"Distance": 0.0,
 		"Velocity": 0.0,
-		"Model": "sphere.obj",
+		"Model": "models/sun.obj",
 		"Inclination": 0.0,
 		"Satellites": [
 			{
 				"Color": [ 0.0, 0.2, 0.8 ],
 				"Radius": 0.03,
-				"Distance": 0.25,
+				"Distance": 0.50,
 				"Velocity": 0.4,
-				"Model": "sphere.obj",
-				"Inclination": 0.0,
+				"Model": "models/sphere.obj",
+				"Inclination": 0.18,
 				"Satellites": [
 					{
 						"Color": [ 0.4, 0.4, 0.4 ],
 						"Radius": 0.01,
-						"Distance": 0.07,
-						"Velocity": -0.2,
-						"Model": "sphere.obj",
-						"Inclination": 0.0,
+						"Distance": 0.14,
+						"Velocity": 0.5,
+						"Model": "models/sphere.obj",
+						"Inclination": 0,
 						"Satellites": "Null"
 					}
 				]
 			},
 			{
-				"Color": [ 1, 0.3, 0.0 ],
+				"Color": [0.76,0.57,0.31],
 				"Radius": 0.05,
-				"Distance": 0.35,
+				"Distance": 0.9,
 				"Velocity": 0.5,
-				"Model": "sphere.obj",
-				"Inclination": 0.0,
+				"Model": "models/saturn.obj",
+				"Inclination": -0.2,
 				"Satellites": [
 					{
 						"Color": [0.18,0.96,0.49],
 						"Radius": 0.01,
-						"Distance": 0.12,
-						"Velocity": -0.4,
-						"Model": "sphere.obj",
-						"Inclination": 0.0,
+						"Distance": 0.24,
+						"Velocity": -0.5,
+						"Model": "models/sphere.obj",
+						"Inclination": 0.3,
 						"Satellites": "Null"
 					},
 					{
 						"Color": [ 0.91,0.32,0.92 ],
-						"Radius": 0.02,
-						"Distance": 0.08,
+						"Radius": 0.012,
+						"Distance": 0.3,
 						"Velocity": 0.5,
-						"Model": "sphere.obj",
-						"Inclination": 0.0,
+						"Model": "models/sphere.obj",
+						"Inclination": -0.3,
 						"Satellites": "Null"
 					}
 				]
@@ -58,10 +58,10 @@
 			{
 				"Color": [ 0.9, 0.1, 0.1 ],
 				"Radius": 0.08,
-				"Distance": 0.55,
+				"Distance": 1.8,
 				"Velocity": -0.3,
-				"Model": "sphere.obj",
-				"Inclination": 0.0,
+				"Model": "models/sphere.obj",
+				"Inclination": 0.1,
 				"Satellites": "Null"
 			}
 		]
